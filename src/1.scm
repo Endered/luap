@@ -1,5 +1,3 @@
-(define (factorial n)
-  (if (<= n 1) 1
-      (* n (factorial (- n 1)))))
-
-(print (factorial 10))
+(let ((c (cons 1 2)))
+  (print (car c))
+  (print (cdr c)))

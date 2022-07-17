@@ -16,16 +16,22 @@
     ((_ (head . args) then)
      (set! *lua-transpile-macros*
 	   (cons
-	    (lambda (expr env)
-	      (match expr (('head . args) (list then))
-		     (xs #f)))
+	    (cons (lambda (expr env)
+		    (match expr (('head . args) #t)
+			   (xs #f)))
+		  (lambda (expr env)
+		    (match expr (('head . args) (list then))
+			   (xs #f))))
 	    *lua-transpile-macros*)))
     ((_ (head . args) env then)
      (set! *lua-transpile-macros*
 	   (cons
-	    (lambda (expr env)
-	      (match expr (('head . args) (list then))
-		     (xs #f)))
+	    (cons (lambda (expr env)
+		    (match expr (('head . args) #t)
+			   (xs #f)))
+		  (lambda (expr env)
+		    (match expr (('head . args) (list then))
+			   (xs #f))))
 	    *lua-transpile-macros*)))))
 
 (define-lua-syntax (let variables . body) env
@@ -39,7 +45,7 @@
 (define-lua-syntax (lambda args . body) env
   (format #f "function(~a)\n~a\nend"
 	  (join-string ", " args)
-	  (transpile-same-scope body env)))
+	  (transpile-same-scope body (append (map (lambda (x) (cons x "")) args) env))))
 
 (define-lua-syntax (define var expr) env
   (format #f "~a = ~a" (transpile var env) (transpile var env)))
@@ -52,6 +58,16 @@
 
 (define-lua-syntax (set! var expr) env
   (format #f "~a = ~a" (transpile var env) (transpile expr env)))
+
+(define-lua-syntax (aref var . indexes) env
+  (format #f "~a~a"
+	  (transpile var env)
+	  (join-string "" (map (lambda (index)
+				 (format #f "[~a]" index))
+			       (map (lambda (index) (transpile index env)) indexes)))))
+
+(define-lua-syntax (create-table)
+  (format #f "{}"))
 
 (define (join-string sep strings)
   (define (rec lists)
@@ -141,7 +157,7 @@
 		env)))
 
 (define (true-name var env)
-  (format #f "~a.~a"
+  (format #f "~a~a"
 	  (cdr (find-if (lambda (x)
 			  (eq? (car x) var))
 			env))
@@ -163,11 +179,11 @@
 	((string? expr)
 	 (format #f "\"~a\"" expr))
 	((find-if (lambda (f)
-		    (f expr env))
+		    ((car f) expr env))
 		  *lua-transpile-macros*)
-	 (car ((find-if (lambda (f)
-			  (f expr env))
-			*lua-transpile-macros*)
+	 (car ((cdr (find-if (lambda (f)
+			       ((car f) expr env))
+			     *lua-transpile-macros*))
 	       expr
 	       env)))
 	(else
@@ -195,12 +211,12 @@
   (let ((next-root (next-objects-root)))
     (format #f "local ~a = {}\n~a\n"
 	    next-root
-	    (let ((env (append (map (lambda (symbol) (cons symbol next-root))
+	    (let ((env (append (map (lambda (symbol) (cons symbol (format #f "~a." next-root)))
 				    (find-all-define exprs)) env)))
 	      (let ((evaled (map (lambda (expr) (transpile expr env))
 				 exprs)))
 		(join-string
-		 "\n"
+		 "\n_=nil\n"
 		 (append (remove-last evaled)
 			 (list (format #f "return ~a" (last evaled))))))))))
 
@@ -210,5 +226,24 @@
 	()
 	(cons res (read-while-eof)))))
 
-(display (transpile-same-scope (read-while-eof) ()))
+(define global-programs ())
+
+(define-syntax register-program
+  (syntax-rules ()
+    ((_ . body)
+     (set! global-programs (append global-programs 'body)))))
+
+
+(register-program
+ (define (cons car cdr)
+   (let ((res (create-table)))
+     (set! (aref res "car") car)
+     (set! (aref res "cdr") cdr)
+     res))
+ (define (car cons)
+   (aref cons "car"))
+ (define (cdr cons)
+   (aref cons "cdr")))
+
+(display (transpile-same-scope (append global-programs (read-while-eof)) ()))
 
