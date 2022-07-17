@@ -56,7 +56,7 @@
 				 (format #f "[~a]" index))
 			       (map (lambda (index) (transpile index env)) indexes)))))
 
-(define-lua-syntax (create-table . binds) env
+(define-lua-syntax (make-table . binds) env
   (format #f "{~a}"
 	  (join-string
 	   ","
@@ -236,7 +236,7 @@
 
 (register-program
  (define (cons car cdr)
-   (create-table (car car) (cdr cdr)))
+   (make-table (car car) (cdr cdr)))
  (define (car cons)
    (aref cons "car"))
  (define (cdr cons)
