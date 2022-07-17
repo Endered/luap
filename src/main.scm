@@ -13,16 +13,6 @@
 
 (define-syntax define-lua-syntax
   (syntax-rules ()
-    ((_ (head . args) then)
-     (set! *lua-transpile-macros*
-	   (cons
-	    (cons (lambda (expr env)
-		    (match expr (('head . args) #t)
-			   (xs #f)))
-		  (lambda (expr env)
-		    (match expr (('head . args) (list then))
-			   (xs #f))))
-	    *lua-transpile-macros*)))
     ((_ (head . args) env then)
      (set! *lua-transpile-macros*
 	   (cons
