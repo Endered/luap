@@ -2,7 +2,6 @@
 
 (define *lua-transpile-macros* ())
 (define *lua-transpile-objects-root* "LUA_TRANSPILE_OBJECTS_ROOT")
-(define *lua-temporal-object* "LUA_TEMPORAL_OBJECT")
 
 (define next-objects-root
   (let ((num 0))
@@ -33,12 +32,37 @@
 	     env))
 
 (define-lua-syntax (lambda args . body) env
-  (format #f "function(~a)\n~a\nend"
-	  (join-string ", " args)
-	  (transpile-same-scope body (append (map (lambda (x) (cons x "")) args) env))))
+  (let ((normal-lambda
+	 (lambda ()
+	   (format #f "function(~a)\n~a\nend"
+		   (join-string ", " (map true-name args))
+		   (transpile-same-scope
+		    body
+		    (append (map (lambda (x) (cons x "")) args) env)))))
+	(variadib-lambda
+	 (lambda ()
+	   (let ((normal-args (reverse (reverse args)))
+		 (variadic-arg (cdr (last-pair args))))
+	     (format #f "function(~a,...)\nlocal ~a = ~a({...})\n~a\nend"
+		     (join-string "," (map true-name normal-args))
+		     (true-name variadic-arg)
+		     (transpile 'array-to-list env)
+		     (transpile-same-scope
+		      body
+		      (append (map (lambda (x) (cons x "")) normal-args)
+			      (list (cons variadic-arg ""))
+			      env)))))))
+    (if (null? (cdr (last-pair args))) 
+	(normal-lambda)
+	(variadib-lambda))))
 
 (define-lua-syntax (define var expr) env
   (format #f "~a = ~a" (transpile var env) (transpile var env)))
+
+(define-lua-syntax (define (f . args) . body) env
+  (format #f "~a = ~a"
+	  (transpile f env)
+	  (transpile `(lambda ,args ,@body) env)))
 
 (define-lua-syntax (if condition then else) env
   (format #f "(function() if ~a then \nreturn ~a\nelse\nreturn ~a\nend\nend)()"
@@ -61,7 +85,7 @@
 	  (join-string
 	   ","
 	   (map (lambda (c)
-		  (format #f "~a = ~a" (car c) (transpile (cadr c) env)))
+		  (format #f "~a = ~a" (true-name (car c)) (transpile (cadr c) env)))
 		binds))))
 
 (define (join-string sep strings)
@@ -72,11 +96,6 @@
   (if (null? strings)
       ""
       (format #f "~a~a" (car strings) (rec (cdr strings)))))
-
-(define-lua-syntax (define (f . args) . body) env
-  (format #f "~a = ~a"
-	  (transpile f env)
-	  (transpile `(lambda ,args ,@body) env)))
 
 (define-lua-syntax (+ . args) env
   (format #f "(~a)" (join-string " + " (map
@@ -154,9 +173,18 @@
 					exprs (cdr exprs))))))
 
 (define-lua-syntax (lua-for (key value expr) . body) env
-  (format #f "(function()\nfor ~a,~a in pairs(~a) do\n(function()\n~a\nend)()\n\nend\nend)()" key value (transpile expr env) (transpile-same-scope body env)))
+  (format #f "(function()\nfor ~a,~a in pairs(~a) do\n~a\nend\nend)()"
+	  (true-name key)
+	  (true-name value)
+	  (transpile expr env)
+	  (transpile-same-scope-without-return body env)))
+
 (define-lua-syntax (lua-ifor (key value expr) . body) env
-  (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n(function()\n~a\nend)()\n\nend\nend)()" key value (transpile expr env) (transpile-same-scope body env)))
+  (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n~a\nend\nend)()"
+	  (true-name key)
+	  (true-name value)
+	  (transpile expr env)
+	  (transpile-same-scope-without-return body env)))
 
 (define-lua-syntax (while condition . body) env
   (format #f "(function()\nwhile(~a)do\n~a\nend\nend)()"
@@ -175,12 +203,16 @@
 		  (eq? (car x) expr))
 		env)))
 
-(define (true-name var env)
-  (format #f "~a~a"
-	  (cdr (find-if (lambda (x)
-			  (eq? (car x) var))
-			env))
-	  var))
+(define (true-name var :optional (env ()))
+  (define (high-to-under c)
+    (if (eq? c #\-) #\_ c))
+  (string-map high-to-under
+	      (format #f "~a~a"
+		      (let ((x (find-if (lambda (x)
+					  (eq? (car x) var))
+					env)))
+			(if x (cdr x) ""))
+		      var)))
 
 (define (undefined-var? expr env)
   (and (var? expr)
@@ -192,7 +224,7 @@
   (cond ((defined-var? expr env)
 	 (true-name expr env))
 	((undefined-var? expr env)
-	 (format #f "~a" expr))
+	 (format #f "~a" (true-name expr)))
 	((number? expr)
 	 (format #f "(~a)" expr))
 	((string? expr)
@@ -281,7 +313,12 @@
      (while (/= list nil)
 	    (set! res (cons (car list) res))
 	    (set! list (cdr list)))
-     res)))
+     res))
+ (define (array-to-list array)
+   (let ((res nil))
+     (lua-ifor (_ value array)
+	       (set! res (cons value res)))
+     (reverse res))))
 
 (display (transpile-same-scope (append global-programs (read-while-eof)) ()))
 
