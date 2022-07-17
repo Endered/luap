@@ -66,8 +66,13 @@
 				 (format #f "[~a]" index))
 			       (map (lambda (index) (transpile index env)) indexes)))))
 
-(define-lua-syntax (create-table)
-  (format #f "{}"))
+(define-lua-syntax (create-table . binds) env
+  (format #f "{~a}"
+	  (join-string
+	   ","
+	   (map (lambda (c)
+		  (format #f "~a = ~a" (car c) (transpile (cadr c) env)))
+		binds))))
 
 (define (join-string sep strings)
   (define (rec lists)
@@ -236,10 +241,7 @@
 
 (register-program
  (define (cons car cdr)
-   (let ((res (create-table)))
-     (set! (aref res "car") car)
-     (set! (aref res "cdr") cdr)
-     res))
+   (create-table (car car) (cdr cdr)))
  (define (car cons)
    (aref cons "car"))
  (define (cdr cons)
