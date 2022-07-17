@@ -141,6 +141,9 @@
 					  (transpile expr env))
 					args))))
 
+(define-lua-syntax (not x) env
+  (format #f "(not ~a)" (transpile x env)))
+
 (define-lua-syntax (< . args) env
   (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
     (format #f "(~a)" (join-string " and "
@@ -215,15 +218,20 @@
 		env)))
 
 (define (true-name var :optional (env ()))
-  (define (high-to-under c)
-    (if (eq? c #\-) #\_ c))
-  (string-map high-to-under
-	      (format #f "~a~a"
-		      (let ((x (find-if (lambda (x)
-					  (eq? (car x) var))
-					env)))
-			(if x (cdr x) ""))
-		      var)))
+  (define (conv c)
+    (cond ((eq? c #\-) "_UNDER_")
+	  ((eq? c #\?) "_QUESTION_")
+	  (else (list->string (list c)))))
+  (list->string
+   (mappend string->list
+	    (map conv
+		 (string->list
+		  (format #f "~a~a"
+			  (let ((x (find-if (lambda (x)
+					      (eq? (car x) var))
+					    env)))
+			    (if x (cdr x) ""))
+			  var))))))
 
 (define (undefined-var? expr env)
   (and (var? expr)
@@ -314,7 +322,7 @@
 
 (register-program
  (define (cons car cdr)
-   (make-table (car car) (cdr cdr)))
+   (make-table (car car) (cdr cdr) (type "cons")))
  (define (car cons)
    (aref cons "car"))
  (define (cdr cons)
@@ -329,7 +337,12 @@
    (let ((res nil))
      (lua-ifor (_ value array)
 	       (set! res (cons value res)))
-     (reverse res))))
+     (reverse res)))
+ (define (null? x)
+   (= x nil))
+ (define (pair? x)
+   (and (not (null? x))
+	(= (aref x "type") "cons"))))
 
 (display (transpile-same-scope (append global-programs (read-while-eof)) ()))
 
