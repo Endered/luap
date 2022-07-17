@@ -149,6 +149,11 @@
 					  (format #f "~a >= ~a" l r))
 					exprs (cdr exprs))))))
 
+(define-lua-syntax (lua-for (key value expr) . body) env
+  (format #f "(function()\nfor ~a,~a in pairs(~a) do\n(function()\n~a\nend)()\n\nend\nend)()" key value (transpile expr env) (transpile-same-scope body env)))
+(define-lua-syntax (lua-ifor (key value expr) . body) env
+  (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n(function()\n~a\nend)()\n\nend\nend)()" key value (transpile expr env) (transpile-same-scope body env)))
+
 (define (mappend f . args-list)
   (apply append (apply map f args-list)))
 
