@@ -139,10 +139,29 @@
 					  (format #f "~a >= ~a" l r))
 					exprs (cdr exprs))))))
 
+(define-lua-syntax (= . args) env
+  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
+    (format #f "(~a)" (join-string " and "
+				   (map (lambda (l r)
+					  (format #f "~a == ~a" l r))
+					exprs (cdr exprs))))))
+
+(define-lua-syntax (/= . args) env
+  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
+    (format #f "(~a)" (join-string " and "
+				   (map (lambda (l r)
+					  (format #f "~a ~~= ~a" l r))
+					exprs (cdr exprs))))))
+
 (define-lua-syntax (lua-for (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in pairs(~a) do\n(function()\n~a\nend)()\n\nend\nend)()" key value (transpile expr env) (transpile-same-scope body env)))
 (define-lua-syntax (lua-ifor (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n(function()\n~a\nend)()\n\nend\nend)()" key value (transpile expr env) (transpile-same-scope body env)))
+
+(define-lua-syntax (while condition . body) env
+  (format #f "(function()\nwhile(~a)do\n~a\nend\nend)()"
+	  (transpile condition env)
+	  (transpile-same-scope-without-return body env)))
 
 (define (mappend f . args-list)
   (apply append (apply map f args-list)))
@@ -220,6 +239,22 @@
 		 (append (remove-last evaled)
 			 (list (format #f "return ~a" (last evaled))))))))))
 
+(define (transpile-same-scope-without-return exprs env)
+  (define (find-all-define exprs)
+    (mappend (match-lambda (('define (var . _) . _) (list var))
+			   (('define var _) (list var))
+			   (_ ()))
+	     exprs))
+  (let ((next-root (next-objects-root)))
+    (format #f "local ~a = {}\n~a\n"
+	    next-root
+	    (let ((env (append (map (lambda (symbol) (cons symbol (format #f "~a." next-root)))
+				    (find-all-define exprs)) env)))
+	      (join-string
+	       "\n_=nil\n"
+	       (map (lambda (expr) (transpile expr env))
+		    exprs))))))
+
 (define (read-while-eof)
   (let ((res (read)))
     (if (eof-object? res)
@@ -240,7 +275,13 @@
  (define (car cons)
    (aref cons "car"))
  (define (cdr cons)
-   (aref cons "cdr")))
+   (aref cons "cdr"))
+ (define (reverse list)
+   (let ((res nil))
+     (while (/= list nil)
+	    (set! res (cons (car list) res))
+	    (set! list (cdr list)))
+     res)))
 
 (display (transpile-same-scope (append global-programs (read-while-eof)) ()))
 
