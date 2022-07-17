@@ -51,10 +51,21 @@
 		      body
 		      (append (map (lambda (x) (cons x "")) normal-args)
 			      (list (cons variadic-arg ""))
-			      env)))))))
-    (if (null? (cdr (last-pair args))) 
-	(normal-lambda)
-	(variadib-lambda))))
+			      env))))))
+	(only-variadic-lambda
+	 (lambda ()
+	   (format #f "function(...)\nlocal ~a = ~a({...})\n~a\nend"
+		   (true-name args)
+		   (transpile 'array-to-list env)
+		   (transpile-same-scope
+		    body
+		    (append (list (cons args "")) env))))))
+    (cond ((not (list? args))
+	   (only-variadic-lambda))
+	  ((null? (cdr (last-pair args)))
+	   (normal-lambda))
+	  (else
+	   (variadib-lambda)))))
 
 (define-lua-syntax (define var expr) env
   (format #f "~a = ~a" (transpile var env) (transpile var env)))
