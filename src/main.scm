@@ -23,6 +23,9 @@
 			   (xs #f))))
 	    *lua-transpile-macros*)))))
 
+(define-lua-syntax (require path) env
+  (format #f "(require ~a)" (transpile path env)))
+
 (define-lua-syntax (let variables . body) env
   (transpile `((lambda ,(map car variables) ,@body) ,@(map cadr variables))
 	     env))
@@ -68,7 +71,7 @@
 	   (variadib-lambda)))))
 
 (define-lua-syntax (define var expr) env
-  (format #f "~a = ~a" (transpile var env) (transpile var env)))
+  (format #f "~a = ~a" (transpile var env) (transpile expr env)))
 
 (define-lua-syntax (define (f . args) . body) env
   (format #f "~a = ~a"
@@ -94,10 +97,18 @@
 (define-lua-syntax (make-table . binds) env
   (format #f "{~a}"
 	  (join-string
-	   ","
+	   ",\n"
 	   (map (lambda (c)
 		  (format #f "~a = ~a" (true-name (car c)) (transpile (cadr c) env)))
 		binds))))
+
+(define-lua-syntax (make-array . exprs) env
+  (format #f "{~a}"
+	  (join-string
+	   ","
+	   (map (lambda (expr)
+		  (transpile expr env))
+		exprs))))
 
 (define (join-string sep strings)
   (define (rec lists)
