@@ -342,7 +342,16 @@
    (= x nil))
  (define (pair? x)
    (and (not (null? x))
-	(= (aref x "type") "cons"))))
+	(= (aref x "type") "cons")))
+ (define (list? x)
+   (or (null? x) (pair? x)))
+ (define (list . args)
+   args)
+ (define (map f list)
+   (if (null? list)
+       nil
+       (cons (f (car list))
+	     (map f (cdr list))))))
 
 (display (transpile-same-scope (append global-programs (read-while-eof)) ()))
 
