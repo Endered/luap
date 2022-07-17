@@ -63,7 +63,9 @@
 		   (transpile-same-scope
 		    body
 		    (append (list (cons args "")) env))))))
-    (cond ((not (list? args))
+    (cond ((null? args)
+	   (normal-lambda))
+	  ((not (list? args))
 	   (only-variadic-lambda))
 	  ((null? (cdr (last-pair args)))
 	   (normal-lambda))
