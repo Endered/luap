@@ -171,7 +171,7 @@
 	       expr
 	       env)))
 	(else
-	 (format #f "((~a)(~a))\n"
+	 (format #f "(~a)(~a)\n"
 		 (transpile (car expr) env)
 		 (join-string "," (map (lambda (expr)
 					 (transpile expr env))
