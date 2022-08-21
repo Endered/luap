@@ -266,21 +266,26 @@
 		  (eq? (car x) expr))
 		env)))
 
-(define (true-name var :optional (env ()))
+(define (to-lua-symbol str)
   (define (conv c)
-    (cond ((eq? c #\-) "_UNDER_")
+    (cond ((eq? c #\-) "_HYPHEN_")
 	  ((eq? c #\?) "_QUESTION_")
+	  ((eq? c #\*) "_STAR_")
 	  (else (list->string (list c)))))
   (list->string
    (mappend string->list
 	    (map conv
 		 (string->list
-		  (format #f "~a~a"
-			  (let ((x (find-if (lambda (x)
-					      (eq? (car x) var))
-					    env)))
-			    (if x (cdr x) ""))
-			  var))))))
+		  str)))))
+
+(define (true-name var :optional (env ()))
+  (to-lua-symbol
+   (format #f "~a~a"
+	   (let ((x (find-if (lambda (x)
+			       (eq? (car x) var))
+			     env)))
+	     (if x (cdr x) ""))
+	   var)))
 
 (define (undefined-var? expr env)
   (and (var? expr)
