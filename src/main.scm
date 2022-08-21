@@ -73,7 +73,7 @@
 (define-lua-syntax (set! var expr) env
   (transpile
    `(begin
-      (eval ,(format #f "~a = ~a" (transpile var env) (transpile expr env)))
+      (lua-eval ,(format #f "~a = ~a" (transpile var env) (transpile expr env)))
       ,var)
    env))
 
@@ -237,7 +237,7 @@
 	  (transpile condition env)
 	  (transpile `(begin ,@body) env)))
 
-(define-lua-syntax (eval code) env
+(define-lua-syntax (lua-eval code) env
   code)
 
 (define (var? expr)
