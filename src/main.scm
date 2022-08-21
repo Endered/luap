@@ -206,14 +206,22 @@
 	  (to-lua-symbol key)
 	  (to-lua-symbol value)
 	  (transpile expr env)
-	  (transpile `(begin ,@body) env)))
+	  (transpile `(begin ,@body)
+		     (add-env-binds
+		      env
+		      (list (cons key key)
+			    (cons value value))))))
 
 (define-lua-syntax (lua-ifor (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n~a\nend\nend)()"
 	  (to-lua-symbol key)
 	  (to-lua-symbol value)
 	  (transpile expr env)
-	  (transpile `(begin ,@body) env)))
+	  (transpile `(begin ,@body)
+		     (add-env-binds
+		      env
+		      (list (cons key key)
+			    (cons value value))))))
 
 (define-lua-syntax (while condition . body) env
   (format #f "(function()\nwhile(~a)do\n~a\nend\nend)()"
