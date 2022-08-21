@@ -109,13 +109,10 @@
 	  (transpile then env)
 	  (transpile else env)))
 
-(define-lua-syntax (set-inner var expr) env
-  (format #f "~a = ~a" (transpile var env) (transpile expr env)))
-
 (define-lua-syntax (set! var expr) env
   (transpile
    `(begin
-      (set-inner ,var ,expr)
+      (eval ,(format #f "~a = ~a" (transpile var env) (transpile expr env)))
       ,var)
    env))
 
