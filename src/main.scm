@@ -161,6 +161,15 @@
 	  (transpile then env)
 	  (transpile else env)))
 
+(define-lua-syntax (cond (condition then) . other) env
+  (transpile `(if ,condition ,then (cond ,@other)) env))
+
+(define-lua-syntax (cond) env
+  (transpile `(error "lisp cond error: failed all conditions") env))
+
+(define-lua-syntax (cond ('else then)) env
+  (transpile then env))
+
 (define-syntax define-binary-operator
   (syntax-rules ()
     ((_ symbol op)
