@@ -169,47 +169,23 @@
 (define-lua-syntax (not x) env
   (format #f "(not ~a)" (transpile x env)))
 
-(define-lua-syntax (< . args) env
-  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
-    (format #f "(~a)" (join-string " and "
-				   (map (lambda (l r)
-					  (format #f "~a < ~a" l r))
-					exprs (cdr exprs))))))
+(define-syntax define-compare-operator
+  (syntax-rules ()
+    ((_ symbol op)
+     (define-lua-syntax (symbol . args) env
+       (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
+	 (format #f "(~a)"
+		 (join-string
+		  " and "
+		  (map (lambda (l r) (format #f "~a ~a ~a" l op r))
+		       exprs (cdr exprs)))))))))
 
-(define-lua-syntax (<= . args) env
-  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
-    (format #f "(~a)" (join-string " and "
-				   (map (lambda (l r)
-					  (format #f "~a <= ~a" l r))
-					exprs (cdr exprs))))))
-
-(define-lua-syntax (> . args) env
-  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
-    (format #f "(~a)" (join-string " and "
-				   (map (lambda (l r)
-					  (format #f "~a > ~a" l r))
-					exprs (cdr exprs))))))
-
-(define-lua-syntax (>= . args) env
-  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
-    (format #f "(~a)" (join-string " and "
-				   (map (lambda (l r)
-					  (format #f "~a >= ~a" l r))
-					exprs (cdr exprs))))))
-
-(define-lua-syntax (= . args) env
-  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
-    (format #f "(~a)" (join-string " and "
-				   (map (lambda (l r)
-					  (format #f "~a == ~a" l r))
-					exprs (cdr exprs))))))
-
-(define-lua-syntax (/= . args) env
-  (let ((exprs (map (lambda (expr) (transpile expr env)) args)))
-    (format #f "(~a)" (join-string " and "
-				   (map (lambda (l r)
-					  (format #f "~a ~~= ~a" l r))
-					exprs (cdr exprs))))))
+(define-compare-operator < "<")
+(define-compare-operator > ">")
+(define-compare-operator <= "<=")
+(define-compare-operator >= ">=")
+(define-compare-operator = "==")
+(define-compare-operator /= "~=")
 
 (define-lua-syntax (lua-for (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in pairs(~a) do\n~a\nend\nend)()"
