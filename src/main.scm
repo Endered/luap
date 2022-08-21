@@ -92,7 +92,7 @@
 		   (join-string ", " (map true-name args))
 		   (transpile-same-scope
 		    body
-		    (append (map (lambda (x) (cons x x)) args) env)))))
+		    (add-env-binds env (map (lambda (x) (cons x x)) args))))))
 	(variadib-lambda
 	 (lambda ()
 	   (let ((normal-args (reverse (reverse args)))
@@ -103,9 +103,10 @@
 		     (transpile 'array-to-list env)
 		     (transpile-same-scope
 		      body
-		      (append (map (lambda (x) (cons x x)) normal-args)
-			      (list (cons variadic-arg variadic-lambda))
-			      env))))))
+		      (add-env-binds
+		       env
+		       (append (map (lambda (x) (cons x x)) normal-args)
+			       (list (cons variadic-arg variadic-lambda)))))))))
 	(only-variadic-lambda
 	 (lambda ()
 	   (format #f "function(...)\nlocal ~a = ~a({...})\n~a\nend"
@@ -113,7 +114,7 @@
 		   (transpile 'array-to-list env)
 		   (transpile-same-scope
 		    body
-		    (append (list (cons args args)) env))))))
+		    (add-env-bind env args args))))))
     (cond ((null? args)
 	   (normal-lambda))
 	  ((not (list? args))
@@ -244,6 +245,18 @@
 		     env)))
      (if x (cdr x) var))))
 
+(define (add-env-bind env symbol full-name)
+  (cons (cons symbol full-name) env))
+
+(define (add-env-binds env binds)
+  (if (null? binds)
+      env
+      (let ((symbol (caar binds))
+	    (full-name (cdar binds)))
+	(add-env-binds
+	 (add-env-bind env symbol full-name)
+	 (cdr binds)))))
+
 (define (transpile-nil expr env)
   (if (null? expr)
       (some "nil")
@@ -298,13 +311,14 @@
   (let ((next-root (next-objects-root)))
     (format #f "local ~a = {}\n~a\n"
 	    next-root
-	    (let ((env (append (map (lambda (symbol)
-				      (cons symbol
-					    (format #f "~a.~a"
-						    next-root
-						    symbol)))
-				    (find-all-define exprs))
-			       env)))
+	    (let ((env (add-env-binds
+			env
+			(map (lambda (symbol)
+			       (cons symbol
+				     (format #f "~a.~a"
+					     next-root
+					     symbol)))
+			     (find-all-define exprs)))))
 	      (let ((evaled (map (lambda (expr)
 				   (format #f "~a;" (transpile expr env)))
 				 exprs)))
