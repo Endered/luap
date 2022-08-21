@@ -276,7 +276,7 @@
 
 (define (transpile-nil expr env)
   (if (null? expr)
-      (some "nil")
+      (some (transpile 'lisp-nil env))
       (none)))
 
 (define (transpile-var expr env)
@@ -350,6 +350,7 @@
      (set! global-programs (append global-programs 'body)))))
 
 (register-program
+ (define lisp-nil "this is lisp nil")
  (define (cons car cdr)
    (make-table (car car) (cdr cdr) (type "cons")))
  (define (car cons)
@@ -357,18 +358,18 @@
  (define (cdr cons)
    (aref cons "cdr"))
  (define (reverse list)
-   (let ((res nil))
-     (while (/= list nil)
+   (let ((res lisp-nil))
+     (while (/= list lisp-nil)
 	    (set! res (cons (car list) res))
 	    (set! list (cdr list)))
      res))
  (define (array-to-list array)
-   (let ((res nil))
+   (let ((res lisp-nil))
      (lua-ifor (_ value array)
 	       (set! res (cons value res)))
      (reverse res)))
  (define (null? x)
-   (= x nil))
+   (= x lisp-nil))
  (define (pair? x)
    (and (not (null? x))
 	(= (aref x "type") "cons")))
@@ -378,7 +379,7 @@
    args)
  (define (map f list)
    (if (null? list)
-       nil
+       lisp-nil
        (cons (f (car list))
 	     (map f (cdr list))))))
 
