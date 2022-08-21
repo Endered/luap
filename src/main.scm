@@ -1,15 +1,5 @@
 (use util.match)
 
-(define *lua-transpile-macros* ())
-(define *lua-transpile-objects-root* "LUA_TRANSPILE_OBJECTS_ROOT")
-
-(define next-objects-root
-  (let ((num 0))
-    (lambda ()
-      (let ((res (format #f "~a_~a" *lua-transpile-objects-root* num)))
-	(set! num (+ num 1))
-	res))))
-
 (define (some x)
   (list x))
 
@@ -34,6 +24,37 @@
 	    x
 	    (find-map-some f (cdr lst))))))
 
+(define (find-if f list)
+  (if (null? list)
+      #f
+      (let ((v (f (car list))))
+	(if v (car list) (find-if f (cdr list))))))
+
+(define (join-string sep strings)
+  (define (rec lists)
+    (if (null? lists)
+	""
+	(format #f "~a~a~a" sep (car lists) (rec (cdr lists)))))
+  (if (null? strings)
+      ""
+      (format #f "~a~a" (car strings) (rec (cdr strings)))))
+
+(define (mappend f . args-list)
+  (apply append (apply map f args-list)))
+
+(define (remove-last list)
+  (reverse (cdr (reverse list))))
+
+(define *lua-transpile-macros* ())
+(define *lua-transpile-objects-root* "LUA_TRANSPILE_OBJECTS_ROOT")
+
+(define next-objects-root
+  (let ((num 0))
+    (lambda ()
+      (let ((res (format #f "~a_~a" *lua-transpile-objects-root* num)))
+	(set! num (+ num 1))
+	res))))
+
 (define-syntax define-lua-syntax
   (syntax-rules ()
     ((_ (head . args) env then)
@@ -49,12 +70,19 @@
 (define-lua-syntax (require path) env
   (format #f "(require ~a)" (transpile path env)))
 
-(define-lua-syntax (let variables . body) env
-  (transpile `((lambda ,(map car variables) ,@body) ,@(map cadr variables))
-	     env))
+(define-lua-syntax (set! var expr) env
+  (transpile
+   `(begin
+      (eval ,(format #f "~a = ~a" (transpile var env) (transpile expr env)))
+      ,var)
+   env))
 
 (define-lua-syntax (begin . body) env
   (transpile `(let () ,@body)
+	     env))
+
+(define-lua-syntax (let variables . body) env
+  (transpile `((lambda ,(map car variables) ,@body) ,@(map cadr variables))
 	     env))
 
 (define-lua-syntax (lambda args . body) env
@@ -103,19 +131,6 @@
    `(set! ,f (lambda ,args ,@body))
    env))
 
-(define-lua-syntax (if condition then else) env
-  (format #f "(function() if ~a then \nreturn ~a\nelse\nreturn ~a\nend\nend)()"
-	  (transpile condition env)
-	  (transpile then env)
-	  (transpile else env)))
-
-(define-lua-syntax (set! var expr) env
-  (transpile
-   `(begin
-      (eval ,(format #f "~a = ~a" (transpile var env) (transpile expr env)))
-      ,var)
-   env))
-
 (define-lua-syntax (aref var . indexes) env
   (format #f "~a~a"
 	  (transpile var env)
@@ -139,14 +154,11 @@
 		  (transpile expr env))
 		exprs))))
 
-(define (join-string sep strings)
-  (define (rec lists)
-    (if (null? lists)
-	""
-	(format #f "~a~a~a" sep (car lists) (rec (cdr lists)))))
-  (if (null? strings)
-      ""
-      (format #f "~a~a" (car strings) (rec (cdr strings)))))
+(define-lua-syntax (if condition then else) env
+  (format #f "(function() if ~a then \nreturn ~a\nelse\nreturn ~a\nend\nend)()"
+	  (transpile condition env)
+	  (transpile then env)
+	  (transpile else env)))
 
 (define-syntax define-binary-operator
   (syntax-rules ()
@@ -166,9 +178,6 @@
 (define-binary-operator or " or ")
 (define-binary-operator and " and ")
 
-(define-lua-syntax (not x) env
-  (format #f "(not ~a)" (transpile x env)))
-
 (define-syntax define-compare-operator
   (syntax-rules ()
     ((_ symbol op)
@@ -186,6 +195,10 @@
 (define-compare-operator >= ">=")
 (define-compare-operator = "==")
 (define-compare-operator /= "~=")
+
+(define-lua-syntax (not x) env
+  (format #f "(not ~a)" (transpile x env)))
+
 
 (define-lua-syntax (lua-for (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in pairs(~a) do\n~a\nend\nend)()"
@@ -208,9 +221,6 @@
 
 (define-lua-syntax (eval code) env
   code)
-
-(define (mappend f . args-list)
-  (apply append (apply map f args-list)))
 
 (define (var? expr)
   (symbol? expr))
@@ -297,15 +307,6 @@
 	      transpile-macros
 	      transpile-function-call))))
 
-(define (find-if f list)
-  (if (null? list)
-      #f
-      (let ((v (f (car list))))
-	(if v (car list) (find-if f (cdr list))))))
-
-(define (remove-last list)
-  (reverse (cdr (reverse list))))
-
 (define (transpile-same-scope exprs env)
   (define (find-all-define exprs)
     (mappend (match-lambda (('define (var . _) . _) (list var))
@@ -330,11 +331,6 @@
 		 (append (remove-last evaled)
 			 (list (format #f "return ~a" (last evaled))))))))))
 
-(define (read-while-eof)
-  (let ((res (read)))
-    (if (eof-object? res)
-	()
-	(cons res (read-while-eof)))))
 
 (define global-programs ())
 
@@ -342,7 +338,6 @@
   (syntax-rules ()
     ((_ . body)
      (set! global-programs (append global-programs 'body)))))
-
 
 (register-program
  (define (cons car cdr)
@@ -376,6 +371,13 @@
        nil
        (cons (f (car list))
 	     (map f (cdr list))))))
+
+
+(define (read-while-eof)
+  (let ((res (read)))
+    (if (eof-object? res)
+	()
+	(cons res (read-while-eof)))))
 
 (display (transpile-same-scope (append global-programs (read-while-eof)) ()))
 
