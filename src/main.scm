@@ -261,14 +261,9 @@
       (some "nil")
       (none)))
 
-(define (transpile-defined-var expr env)
-  (if (defined-var? expr env)
+(define (transpile-var expr env)
+  (if (var? expr)
       (some (true-name expr env))
-      (none)))
-
-(define (transpile-undefined-var expr env)
-  (if (undefined-var? expr env)
-      (some (true-name expr))
       (none)))
 
 (define (transpile-number expr env)
@@ -300,8 +295,7 @@
 	       (f expr env))
 	     (list
 	      transpile-nil
-	      transpile-defined-var
-	      transpile-undefined-var
+	      transpile-var
 	      transpile-number
 	      transpile-string
 	      transpile-macros
