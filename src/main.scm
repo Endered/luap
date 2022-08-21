@@ -64,7 +64,7 @@
 		   (join-string ", " (map true-name args))
 		   (transpile-same-scope
 		    body
-		    (append (map (lambda (x) (cons x "")) args) env)))))
+		    (append (map (lambda (x) (cons x x)) args) env)))))
 	(variadib-lambda
 	 (lambda ()
 	   (let ((normal-args (reverse (reverse args)))
@@ -75,8 +75,8 @@
 		     (transpile 'array-to-list env)
 		     (transpile-same-scope
 		      body
-		      (append (map (lambda (x) (cons x "")) normal-args)
-			      (list (cons variadic-arg ""))
+		      (append (map (lambda (x) (cons x x)) normal-args)
+			      (list (cons variadic-arg variadic-lambda))
 			      env))))))
 	(only-variadic-lambda
 	 (lambda ()
@@ -85,7 +85,7 @@
 		   (transpile 'array-to-list env)
 		   (transpile-same-scope
 		    body
-		    (append (list (cons args "")) env))))))
+		    (append (list (cons args args)) env))))))
     (cond ((null? args)
 	   (normal-lambda))
 	  ((not (list? args))
@@ -280,12 +280,10 @@
 
 (define (true-name var :optional (env ()))
   (to-lua-symbol
-   (format #f "~a~a"
-	   (let ((x (find-if (lambda (x)
-			       (eq? (car x) var))
-			     env)))
-	     (if x (cdr x) ""))
-	   var)))
+   (let ((x (find-if (lambda (x)
+		       (eq? (car x) var))
+		     env)))
+     (if x (cdr x) var))))
 
 (define (undefined-var? expr env)
   (and (var? expr)
@@ -362,8 +360,13 @@
   (let ((next-root (next-objects-root)))
     (format #f "local ~a = {}\n~a\n"
 	    next-root
-	    (let ((env (append (map (lambda (symbol) (cons symbol (format #f "~a." next-root)))
-				    (find-all-define exprs)) env)))
+	    (let ((env (append (map (lambda (symbol)
+				      (cons symbol
+					    (format #f "~a.~a"
+						    next-root
+						    symbol)))
+				    (find-all-define exprs))
+			       env)))
 	      (let ((evaled (map (lambda (expr)
 				   (format #f "~a;" (transpile expr env)))
 				 exprs)))
