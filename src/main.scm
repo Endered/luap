@@ -363,22 +363,6 @@
 		 (append (remove-last evaled)
 			 (list (format #f "return ~a" (last evaled))))))))))
 
-(define (transpile-same-scope-without-return exprs env)
-  (define (find-all-define exprs)
-    (mappend (match-lambda (('define (var . _) . _) (list var))
-			   (('define var _) (list var))
-			   (_ ()))
-	     exprs))
-  (let ((next-root (next-objects-root)))
-    (format #f "local ~a = {}\n~a\n"
-	    next-root
-	    (let ((env (append (map (lambda (symbol) (cons symbol (format #f "~a." next-root)))
-				    (find-all-define exprs)) env)))
-	      (join-string
-	       "\n_=nil\n"
-	       (map (lambda (expr) (transpile expr env))
-		    exprs))))))
-
 (define (read-while-eof)
   (let ((res (read)))
     (if (eof-object? res)
