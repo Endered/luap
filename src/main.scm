@@ -303,29 +303,26 @@
 	      transpile-function-call))))
 
 (define (transpile-same-scope exprs env)
-  (define (find-all-define exprs)
+  (define current-objects-root (next-objects-root))
+  (define new-definitions
     (mappend (match-lambda (('define (var . _) . _) (list var))
 			   (('define var _) (list var))
 			   (_ ()))
 	     exprs))
-  (let ((next-root (next-objects-root)))
-    (format #f "local ~a = {}\n~a\n"
-	    next-root
-	    (let ((env (add-env-binds
-			env
-			(map (lambda (symbol)
-			       (cons symbol
-				     (format #f "~a.~a"
-					     next-root
-					     symbol)))
-			     (find-all-define exprs)))))
-	      (let ((evaled (map (lambda (expr)
-				   (format #f "~a;" (transpile expr env)))
-				 exprs)))
-		(join-string
-		 "\n"
-		 (append (remove-last evaled)
-			 (list (format #f "return ~a" (last evaled))))))))))
+  (define new-bindings
+    (map (lambda (symbol)
+	   (cons symbol (format #f "~a.~a" current-objects-root symbol)))
+	 new-definitions))
+  (format #f "local ~a = {}\n~a\n"
+	  current-objects-root
+	  (let* ((new-env (add-env-binds env new-bindings))
+		 (evaled (map (lambda (expr)
+				(format #f "~a;" (transpile expr new-env)))
+			      exprs)))
+	    (join-string
+	     "\n"
+	     (append (remove-last evaled)
+		     (list (format #f "return ~a" (last evaled))))))))
 
 
 (define global-programs ())
