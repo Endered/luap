@@ -247,6 +247,9 @@
 	  (transpile condition env)
 	  (transpile-same-scope-without-return body env)))
 
+(define-lua-syntax (eval code) env
+  code)
+
 (define (mappend f . args-list)
   (apply append (apply map f args-list)))
 
