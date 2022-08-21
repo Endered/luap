@@ -10,6 +10,30 @@
 	(set! num (+ num 1))
 	res))))
 
+(define (some x)
+  (list x))
+
+(define (none)
+  (list))
+
+(define (some? x)
+  (and (pair? x)
+       (null? (cdr x))))
+
+(define (none? x)
+  (null? x))
+
+(define (get-some x)
+  (car x))
+
+(define (find-map-some f lst)
+  (if (null? lst)
+      (none)
+      (let ((x (f (car lst))))
+	(if (some? x)
+	    x
+	    (find-map-some f (cdr lst))))))
+
 (define-syntax define-lua-syntax
   (syntax-rules ()
     ((_ (head . args) env then)
@@ -252,29 +276,55 @@
 		       (eq? (car x) expr))
 		     env))))
 
-(define (transpile expr env)
-  (cond ((defined-var? expr env)
-	 (true-name expr env))
-	((undefined-var? expr env)
-	 (format #f "~a" (true-name expr)))
-	((number? expr)
-	 (format #f "(~a)" expr))
-	((string? expr)
-	 (format #f "\"~a\"" expr))
-	((find-if (lambda (f)
-		    ((car f) expr env))
-		  *lua-transpile-macros*)
-	 (car ((cdr (find-if (lambda (f)
-			       ((car f) expr env))
-			     *lua-transpile-macros*))
-	       expr
-	       env)))
-	(else
-	 (format #f "(~a)(~a)\n"
+(define (transpile-defined-var expr env)
+  (if (defined-var? expr env)
+      (some (true-name expr env))
+      (none)))
+
+(define (transpile-undefined-var expr env)
+  (if (undefined-var? expr env)
+      (some (true-name expr))
+      (none)))
+
+(define (transpile-number expr env)
+  (if (number? expr)
+      (some (format #f "(~a)" expr))
+      (none)))
+
+(define (transpile-string expr env)
+  (if (string? expr)
+      (some (format #f "\"~a\"" expr))
+      (none)))
+
+(define (transpile-macros expr env)
+  (if (find-if (lambda (f)
+		 ((car f) expr env))
+	       *lua-transpile-macros*)
+      (some (car ((cdr (find-if (lambda (f)
+				  ((car f) expr env))
+				*lua-transpile-macros*))
+		  expr
+		  env)))
+      (none)))
+
+(define (transpile-function-call expr env)
+  (some (format #f "(~a)(~a)\n"
 		 (transpile (car expr) env)
 		 (join-string "," (map (lambda (expr)
 					 (transpile expr env))
-				       (cdr expr)))))))
+				       (cdr expr))))))
+
+(define (transpile expr env)
+  (get-some (find-map-some
+	     (lambda (f)
+	       (f expr env))
+	     (list
+	      transpile-defined-var
+	      transpile-undefined-var
+	      transpile-number
+	      transpile-string
+	      transpile-macros
+	      transpile-function-call))))
 
 (define (find-if f list)
   (if (null? list)
