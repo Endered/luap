@@ -148,44 +148,23 @@
       ""
       (format #f "~a~a" (car strings) (rec (cdr strings)))))
 
-(define-lua-syntax (+ . args) env
-  (format #f "(~a)" (join-string " + " (map
-					(lambda (expr)
-					  (transpile expr env))
-					args))))
-(define-lua-syntax (- . args) env
-  (format #f "(~a)" (join-string " - " (map
-					(lambda (expr)
-					  (transpile expr env))
-					args))))
-(define-lua-syntax (* . args) env
-  (format #f "(~a)" (join-string " * " (map
-					(lambda (expr)
-					  (transpile expr env))
-					args))))
-(define-lua-syntax (/ . args) env
-  (format #f "(~a)" (join-string " / " (map
-					(lambda (expr)
-					  (transpile expr env))
-					args))))
+(define-syntax define-binary-operator
+  (syntax-rules ()
+    ((_ symbol op)
+     (define-lua-syntax (symbol . args) env
+       (format #f "(~a)" (join-string
+			  op
+			  (map (lambda (expr)
+				 (transpile expr env))
+			       args)))))))
 
-(define-lua-syntax (.. . args) env
-  (format #f "(~a)" (join-string " .. " (map
-					 (lambda (expr)
-					   (transpile expr env))
-					 args))))
-
-(define-lua-syntax (or . args) env
-  (format #f "(~a)" (join-string " or " (map
-					 (lambda (expr)
-					   (transpile expr env))
-					 args))))
-
-(define-lua-syntax (and . args) env
-  (format #f "(~a)" (join-string " and " (map
-					  (lambda (expr)
-					    (transpile expr env))
-					  args))))
+(define-binary-operator + " + ")
+(define-binary-operator - " - ")
+(define-binary-operator * " * ")
+(define-binary-operator / " / ")
+(define-binary-operator .. " .. ")
+(define-binary-operator or " or ")
+(define-binary-operator and " and ")
 
 (define-lua-syntax (not x) env
   (format #f "(not ~a)" (transpile x env)))
