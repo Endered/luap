@@ -318,11 +318,11 @@
    *lua-transpile-macros*))
 
 (define (transpile-function-call expr env)
-  (some (format #f "(~a)(~a)\n"
-		 (transpile (car expr) env)
-		 (join-string "," (map (lambda (expr)
-					 (transpile expr env))
-				       (cdr expr))))))
+  (some (format #f "(~a)(~a)"
+		(transpile (car expr) env)
+		(join-string "," (map (lambda (expr)
+					(transpile expr env))
+				      (cdr expr))))))
 
 (define (transpile expr env)
   (get-some (find-map-some
