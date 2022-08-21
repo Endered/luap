@@ -225,12 +225,6 @@
 (define (var? expr)
   (symbol? expr))
 
-(define (defined-var? expr env)
-  (and (var? expr)
-       (find-if (lambda (x)
-		  (eq? (car x) expr))
-		env)))
-
 (define (to-lua-symbol x)
   (define (conv c)
     (cond ((eq? c #\-) "_HYPHEN_")
@@ -249,12 +243,6 @@
 		       (eq? (car x) var))
 		     env)))
      (if x (cdr x) var))))
-
-(define (undefined-var? expr env)
-  (and (var? expr)
-       (not (find-if (lambda (x)
-		       (eq? (car x) expr))
-		     env))))
 
 (define (transpile-nil expr env)
   (if (null? expr)
