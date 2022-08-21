@@ -96,12 +96,12 @@
 	   (variadib-lambda)))))
 
 (define-lua-syntax (define var expr) env
-  (format #f "~a = ~a" (transpile var env) (transpile expr env)))
+  (transpile `(set! ,var ,expr) env))
 
 (define-lua-syntax (define (f . args) . body) env
-  (format #f "~a = ~a"
-	  (transpile f env)
-	  (transpile `(lambda ,args ,@body) env)))
+  (transpile
+   `(set! ,f (lambda ,args ,@body))
+   env))
 
 (define-lua-syntax (if condition then else) env
   (format #f "(function() if ~a then \nreturn ~a\nelse\nreturn ~a\nend\nend)()"
