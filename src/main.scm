@@ -42,7 +42,7 @@
 	    (lambda (expr env)
 	      (match expr
 		     (('head . args)
-			   (some then))
+		      (some then))
 		     (xs (none))))
 	    *lua-transpile-macros*)))))
 
@@ -174,9 +174,9 @@
 
 (define-lua-syntax (.. . args) env
   (format #f "(~a)" (join-string " .. " (map
-					(lambda (expr)
-					  (transpile expr env))
-					args))))
+					 (lambda (expr)
+					   (transpile expr env))
+					 args))))
 
 (define-lua-syntax (or . args) env
   (format #f "(~a)" (join-string " or " (map
