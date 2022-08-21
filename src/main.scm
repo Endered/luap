@@ -240,19 +240,19 @@
 	  (true-name key)
 	  (true-name value)
 	  (transpile expr env)
-	  (transpile-same-scope-without-return body env)))
+	  (transpile `(begin ,@body) env)))
 
 (define-lua-syntax (lua-ifor (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n~a\nend\nend)()"
 	  (true-name key)
 	  (true-name value)
 	  (transpile expr env)
-	  (transpile-same-scope-without-return body env)))
+	  (transpile `(begin ,@body) env)))
 
 (define-lua-syntax (while condition . body) env
   (format #f "(function()\nwhile(~a)do\n~a\nend\nend)()"
 	  (transpile condition env)
-	  (transpile-same-scope-without-return body env)))
+	  (transpile `(begin ,@body) env)))
 
 (define-lua-syntax (eval code) env
   code)
