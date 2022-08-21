@@ -288,6 +288,11 @@
 		       (eq? (car x) expr))
 		     env))))
 
+(define (transpile-nil expr env)
+  (if (null? expr)
+      (some "nil")
+      (none)))
+
 (define (transpile-defined-var expr env)
   (if (defined-var? expr env)
       (some (true-name expr env))
@@ -326,6 +331,7 @@
 	     (lambda (f)
 	       (f expr env))
 	     (list
+	      transpile-nil
 	      transpile-defined-var
 	      transpile-undefined-var
 	      transpile-number
