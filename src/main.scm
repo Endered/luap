@@ -382,6 +382,18 @@
        (cons (f (car list))
 	     (map f (cdr list))))))
 
+(define (evaluate-transpiler-level-eval program)
+  (let ((targets (filter (match-lambda
+			  (('transpiler-eval . _) #t)
+			  (_ #f))
+			 program)))
+    (eval `(begin ,@(mappend cdr targets)) (interaction-environment))))
+
+(define (remove-transpiler-level-eval program)
+  (filter (match-lambda
+	   (('transpiler-eval . _) #f)
+	   (_ #t))
+	  program))
 
 (define (read-while-eof)
   (let ((res (read)))
@@ -389,5 +401,8 @@
 	()
 	(cons res (read-while-eof)))))
 
-(display (transpile-same-scope (append global-programs (read-while-eof)) ()))
-
+(let ((program (append global-programs (read-while-eof))))
+  (evaluate-transpiler-level-eval program)
+  (display (transpile-same-scope
+	    (remove-transpiler-level-eval program)
+	    ())))
