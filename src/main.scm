@@ -356,10 +356,11 @@
 	    next-root
 	    (let ((env (append (map (lambda (symbol) (cons symbol (format #f "~a." next-root)))
 				    (find-all-define exprs)) env)))
-	      (let ((evaled (map (lambda (expr) (transpile expr env))
+	      (let ((evaled (map (lambda (expr)
+				   (format #f "~a;" (transpile expr env)))
 				 exprs)))
 		(join-string
-		 "\n_=nil\n"
+		 "\n"
 		 (append (remove-last evaled)
 			 (list (format #f "return ~a" (last evaled))))))))))
 
