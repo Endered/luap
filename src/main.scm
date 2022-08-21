@@ -39,12 +39,11 @@
     ((_ (head . args) env then)
      (set! *lua-transpile-macros*
 	   (cons
-	    (cons (lambda (expr env)
-		    (match expr (('head . args) #t)
-			   (xs #f)))
-		  (lambda (expr env)
-		    (match expr (('head . args) (list then))
-			   (xs #f))))
+	    (lambda (expr env)
+	      (match expr
+		     (('head . args)
+			   (some then))
+		     (xs (none))))
 	    *lua-transpile-macros*)))))
 
 (define-lua-syntax (require path) env
@@ -297,15 +296,10 @@
       (none)))
 
 (define (transpile-macros expr env)
-  (if (find-if (lambda (f)
-		 ((car f) expr env))
-	       *lua-transpile-macros*)
-      (some (car ((cdr (find-if (lambda (f)
-				  ((car f) expr env))
-				*lua-transpile-macros*))
-		  expr
-		  env)))
-      (none)))
+  (find-map-some
+   (lambda (f)
+     (f expr env))
+   *lua-transpile-macros*))
 
 (define (transpile-function-call expr env)
   (some (format #f "(~a)(~a)\n"
