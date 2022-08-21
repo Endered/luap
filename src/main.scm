@@ -266,7 +266,7 @@
 		  (eq? (car x) expr))
 		env)))
 
-(define (to-lua-symbol str)
+(define (to-lua-symbol x)
   (define (conv c)
     (cond ((eq? c #\-) "_HYPHEN_")
 	  ((eq? c #\?) "_QUESTION_")
@@ -276,7 +276,7 @@
    (mappend string->list
 	    (map conv
 		 (string->list
-		  str)))))
+		  (format #f "~a" x))))))
 
 (define (true-name var :optional (env ()))
   (to-lua-symbol
