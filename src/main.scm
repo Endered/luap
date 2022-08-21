@@ -89,7 +89,7 @@
   (let ((normal-lambda
 	 (lambda ()
 	   (format #f "function(~a)\n~a\nend"
-		   (join-string ", " (map true-name args))
+		   (join-string ", " (map to-lua-symbol args))
 		   (transpile-same-scope
 		    body
 		    (add-env-binds env (map (lambda (x) (cons x x)) args))))))
@@ -98,8 +98,8 @@
 	   (let ((normal-args (reverse (reverse args)))
 		 (variadic-arg (cdr (last-pair args))))
 	     (format #f "function(~a,...)\nlocal ~a = ~a({...})\n~a\nend"
-		     (join-string "," (map true-name normal-args))
-		     (true-name variadic-arg)
+		     (join-string "," (map to-lua-symbol normal-args))
+		     (to-lua-symbol variadic-arg)
 		     (transpile 'array-to-list env)
 		     (transpile-same-scope
 		      body
@@ -110,7 +110,7 @@
 	(only-variadic-lambda
 	 (lambda ()
 	   (format #f "function(...)\nlocal ~a = ~a({...})\n~a\nend"
-		   (true-name args)
+		   (to-lua-symbol args)
 		   (transpile 'array-to-list env)
 		   (transpile-same-scope
 		    body
@@ -144,7 +144,7 @@
 	  (join-string
 	   ",\n"
 	   (map (lambda (c)
-		  (format #f "~a = ~a" (true-name (car c)) (transpile (cadr c) env)))
+		  (format #f "~a = ~a" (to-lua-symbol (car c)) (transpile (cadr c) env)))
 		binds))))
 
 (define-lua-syntax (make-array . exprs) env
@@ -203,15 +203,15 @@
 
 (define-lua-syntax (lua-for (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in pairs(~a) do\n~a\nend\nend)()"
-	  (true-name key)
-	  (true-name value)
+	  (to-lua-symbol key)
+	  (to-lua-symbol value)
 	  (transpile expr env)
 	  (transpile `(begin ,@body) env)))
 
 (define-lua-syntax (lua-ifor (key value expr) . body) env
   (format #f "(function()\nfor ~a,~a in ipairs(~a) do\n~a\nend\nend)()"
-	  (true-name key)
-	  (true-name value)
+	  (to-lua-symbol key)
+	  (to-lua-symbol value)
 	  (transpile expr env)
 	  (transpile `(begin ,@body) env)))
 
