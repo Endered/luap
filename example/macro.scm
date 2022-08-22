@@ -10,22 +10,6 @@
  (defmacro (for 'yield . body)
    `(list (begin ,@body))))
 
-(define (length lst)
-  (if (null? lst)
-      0
-      (+ 1 (length (cdr lst)))))
-
-(define (append . lsts)
-  (define (rec1 lsts)
-    (cond ((= 0 (length lsts)) ())
-	  ((= 1 (length lsts)) (car lsts))
-	  (else (rec2 (car lsts) (cdr lsts)))))
-  (define (rec2 lst lsts)
-    (if (null? lst)
-	(rec1 lsts)
-	(cons (car lst) (rec2 (cdr lst) lsts))))
-  (rec1 lsts))
-
 (define (mappend f lst)
   (apply append (map f lst)))
 
