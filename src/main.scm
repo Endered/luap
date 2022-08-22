@@ -381,7 +381,7 @@
      (if (null? (cdr lst))
 	 (car lst)
 	 (cons (car lst) (rec (cdr lst)))))
-   (f (unpack (rec args))))
+   (f (unpack (list-to-array (rec args)))))
  (define (null? x)
    (= x lisp-nil))
  (define (pair? x)
