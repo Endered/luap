@@ -1,28 +1,28 @@
 (use util.match)
 
-(define (some x)
+(define (just x)
   (list x))
 
 (define (none)
   (list))
 
-(define (some? x)
+(define (just? x)
   (and (pair? x)
        (null? (cdr x))))
 
 (define (none? x)
   (null? x))
 
-(define (get-some x)
+(define (get-just x)
   (car x))
 
-(define (find-map-some f lst)
+(define (find-map-just f lst)
   (if (null? lst)
       (none)
       (let ((x (f (car lst))))
-	(if (some? x)
+	(if (just? x)
 	    x
-	    (find-map-some f (cdr lst))))))
+	    (find-map-just f (cdr lst))))))
 
 (define (find-if f list)
   (if (null? list)
@@ -63,7 +63,7 @@
 	    (lambda (expr env)
 	      (match expr
 		     (('head . args)
-		      (some then))
+		      (just then))
 		     (xs (none))))
 	    *lua-transpile-macros*)))))
 
@@ -75,7 +75,7 @@
 	    (lambda (expr env)
 	      (match expr
 		     (('head . args)
-		      (some (transpile then env)))
+		      (just (transpile then env)))
 		     (xs (none))))
 	    *lua-transpile-macros*)))))
 
@@ -288,39 +288,39 @@
 
 (define (transpile-nil expr env)
   (if (null? expr)
-      (some (transpile 'lisp-nil env))
+      (just (transpile 'lisp-nil env))
       (none)))
 
 (define (transpile-var expr env)
   (if (var? expr)
-      (some (true-name expr env))
+      (just (true-name expr env))
       (none)))
 
 (define (transpile-number expr env)
   (if (number? expr)
-      (some (format #f "(~a)" expr))
+      (just (format #f "(~a)" expr))
       (none)))
 
 (define (transpile-string expr env)
   (if (string? expr)
-      (some (format #f "\"~a\"" expr))
+      (just (format #f "\"~a\"" expr))
       (none)))
 
 (define (transpile-macros expr env)
-  (find-map-some
+  (find-map-just
    (lambda (f)
      (f expr env))
    *lua-transpile-macros*))
 
 (define (transpile-function-call expr env)
-  (some (format #f "(~a)(~a)"
+  (just (format #f "(~a)(~a)"
 		(transpile (car expr) env)
 		(join-string "," (map (lambda (expr)
 					(transpile expr env))
 				      (cdr expr))))))
 
 (define (transpile expr env)
-  (get-some (find-map-some
+  (get-just (find-map-some
 	     (lambda (f)
 	       (f expr env))
 	     (list
