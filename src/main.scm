@@ -93,7 +93,7 @@
 		   (transpile-same-scope
 		    body
 		    (add-env-binds env (map (lambda (x) (cons x x)) args))))))
-	(variadib-lambda
+	(variadic-lambda
 	 (lambda ()
 	   (let ((normal-args (reverse (reverse args)))
 		 (variadic-arg (cdr (last-pair args))))
@@ -106,7 +106,7 @@
 		      (add-env-binds
 		       env
 		       (append (map (lambda (x) (cons x x)) normal-args)
-			       (list (cons variadic-arg variadic-lambda)))))))))
+			       (list (cons variadic-arg variadic-arg)))))))))
 	(only-variadic-lambda
 	 (lambda ()
 	   (format #f "function(...)\nlocal ~a = ~a({...})\n~a\nend"
@@ -122,7 +122,7 @@
 	  ((null? (cdr (last-pair args)))
 	   (normal-lambda))
 	  (else
-	   (variadib-lambda)))))
+	   (variadic-lambda)))))
 
 (define-lua-syntax (define var expr) env
   (transpile `(set! ,var ,expr) env))
