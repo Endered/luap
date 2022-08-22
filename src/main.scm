@@ -117,7 +117,7 @@
 		    (add-env-bind env args args))))))
     (cond ((null? args)
 	   (normal-lambda))
-	  ((not (list? args))
+	  ((symbol? args)
 	   (only-variadic-lambda))
 	  ((null? (cdr (last-pair args)))
 	   (normal-lambda))
