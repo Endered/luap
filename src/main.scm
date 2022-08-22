@@ -391,11 +391,54 @@
    (or (null? x) (pair? x)))
  (define (list . args)
    args)
- (define (map f list)
-   (if (null? list)
+ (define (every f . lists)
+   (define (finish? lists)
+     (if (null? lists)
+	 false
+	 (or (null? (car lists))
+	     (finish? (cdr lists)))))
+   (define (heads lists)
+     (if (null? lists)
+	 lisp-nil
+	 (cons (car (car lists))
+	       (heads (cdr lists)))))
+   (define (nexts lists)
+     (if (null? lists)
+	 lisp-nil
+	 (cons (cdr (car lists))
+	       (nexts (cdr lists)))))
+   (define (rec lists)
+     (or (finish? lists)
+	 (and (apply f (heads lists))
+	      (rec (nexts lists)))))
+   (rec lists))
+ (define (some f . lists)
+   (define (finish? lists)
+     (if (null? lists)
+	 false
+	 (or (null? (car lists))
+	     (finish? (cdr lists)))))
+   (define (heads lists)
+     (if (null? lists)
+	 lisp-nil
+	 (cons (car (car lists))
+	       (heads (cdr lists)))))
+   (define (nexts lists)
+     (if (null? lists)
+	 lisp-nil
+	 (cons (cdr (car lists))
+	       (nexts (cdr lists)))))
+   (define (rec lists)
+     (if (finish? lists)
+	 false
+	 (or (apply f (heads lists))
+	     (rec (nexts lists)))))
+   (rec lists))
+ (define (map f . lists)
+   (if (some null? lists) 
        lisp-nil
-       (cons (f (car list))
-	     (map f (cdr list))))))
+       (cons (apply f (map car list))
+	     (apply map f (map cdr list))))))
 
 (define (evaluate-transpiler-level-eval program)
   (let ((targets (filter (match-lambda
