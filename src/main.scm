@@ -391,26 +391,26 @@
    (or (null? x) (pair? x)))
  (define (list . args)
    args)
+ (define (list-heads lists)
+     (if (null? lists)
+	 lisp-nil
+	 (cons (car (car lists))
+	       (list-heads (cdr lists)))))
+ (define (list-nexts lists)
+   (if (null? lists)
+       lisp-nil
+       (cons (cdr (car lists))
+	     (list-nexts (cdr lists)))))
  (define (every f . lists)
    (define (finish? lists)
      (if (null? lists)
 	 false
 	 (or (null? (car lists))
 	     (finish? (cdr lists)))))
-   (define (heads lists)
-     (if (null? lists)
-	 lisp-nil
-	 (cons (car (car lists))
-	       (heads (cdr lists)))))
-   (define (nexts lists)
-     (if (null? lists)
-	 lisp-nil
-	 (cons (cdr (car lists))
-	       (nexts (cdr lists)))))
    (define (rec lists)
      (or (finish? lists)
-	 (and (apply f (heads lists))
-	      (rec (nexts lists)))))
+	 (and (apply f (list-heads lists))
+	      (rec (list-nexts lists)))))
    (rec lists))
  (define (some f . lists)
    (define (finish? lists)
@@ -418,27 +418,17 @@
 	 false
 	 (or (null? (car lists))
 	     (finish? (cdr lists)))))
-   (define (heads lists)
-     (if (null? lists)
-	 lisp-nil
-	 (cons (car (car lists))
-	       (heads (cdr lists)))))
-   (define (nexts lists)
-     (if (null? lists)
-	 lisp-nil
-	 (cons (cdr (car lists))
-	       (nexts (cdr lists)))))
    (define (rec lists)
      (if (finish? lists)
 	 false
-	 (or (apply f (heads lists))
-	     (rec (nexts lists)))))
+	 (or (apply f (list-heads lists))
+	     (rec (list-nexts lists)))))
    (rec lists))
  (define (map f . lists)
    (if (some null? lists) 
        lisp-nil
-       (cons (apply f (map car list))
-	     (apply map f (map cdr list))))))
+       (cons (apply f (list-heads lists))
+	     (apply map f (list-nexts lists))))))
 
 (define (evaluate-transpiler-level-eval program)
   (let ((targets (filter (match-lambda
