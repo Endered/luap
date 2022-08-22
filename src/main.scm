@@ -436,6 +436,10 @@
 	 (or (apply f (list-heads lists))
 	     (rec (list-nexts lists)))))
    (rec lists))
+ (define (length lst)
+   (if (null? lst)
+       0
+       (+ 1 (length (cdr lst)))))
  (define (append . lsts)
    (define (rec1 lsts)
      (cond ((= 0 (length lsts)) ())
