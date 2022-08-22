@@ -320,7 +320,7 @@
 				      (cdr expr))))))
 
 (define (transpile expr env)
-  (get-just (find-map-some
+  (get-just (find-map-just
 	     (lambda (f)
 	       (f expr env))
 	     (list
