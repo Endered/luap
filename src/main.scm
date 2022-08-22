@@ -67,6 +67,18 @@
 		     (xs (none))))
 	    *lua-transpile-macros*)))))
 
+(define-syntax defmacro
+  (syntax-rules ()
+    ((_ (head . args) then)
+     (set! *lua-transpile-macros*
+	   (cons
+	    (lambda (expr env)
+	      (match expr
+		     (('head . args)
+		      (some (transpile then env)))
+		     (xs (none))))
+	    *lua-transpile-macros*)))))
+
 (define-lua-syntax (require path) env
   (format #f "(require ~a)" (transpile path env)))
 
